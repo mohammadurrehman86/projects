@@ -1,0 +1,738 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "includeSpamTrash": true,
+          "labelIds": [
+            "INBOX"
+          ],
+          "q": "has:attachment",
+          "readStatus": "unread"
+        },
+        "options": {
+          "dataPropertyAttachmentsPrefixName": "attachment_",
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2032,
+        176
+      ],
+      "id": "639b0ad1-0e2c-4c03-847f-40d3eb7495bc",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "hNHHDanq5RgnpxgN",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "attachment_0",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1EUrED5QXTXFLWjsCWGS9V72SPuRIjGaP",
+          "mode": "list",
+          "cachedResultName": "Store cvs",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1EUrED5QXTXFLWjsCWGS9V72SPuRIjGaP"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1472,
+        144
+      ],
+      "id": "44ad1a54-9792-47a8-99c0-1a1b1b10fd12",
+      "name": "Upload file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "rydFqEurt34BDBkB",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -752,
+        128
+      ],
+      "id": "31cf864a-409f-419b-bf14-36683a7e4eb6",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1264,
+        144
+      ],
+      "id": "4fb459a9-bdf2-4033-8f0d-2e254f1e3292",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "rydFqEurt34BDBkB",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze the following candidate CV:\n{{ $json.data }}\n\nReturn a JSON object with these fields. Remember to be flexible and focus on the overall profile and field relevance.\n\n- \"name\": Candidate's full name\n- \"email\": Candidate's email (null if not found)\n- \"phone\": Candidate's phone number in local Pakistani format (null if not found; remove all symbols, spaces, and non-numeric characters so only digits remain).\n- \"from_karachi\": true/false - If their location isn't mentioned, try to infer it from other details like education institutions or city-specific projects, but if you can't be sure, set to false.\n- \"semester\": Candidate's current semester number (null if not found; estimate it based on dates and timeline, if possible).\n- \"eligible\": true/false - A candidate is only eligible if they are from Karachi and have **any relevant background or interest** in one of the jobs. This is not about a perfect skills match.\n- \"job\": One job from the list above, or \"Not Eligible\". If the candidate's profile is even generally related to a job (e.g., their field of study or a single project), assign that job.\n- \"status\": \"Accepted\" or \"Rejected\" - A candidate should only be rejected if they are **not from Karachi** or if their profile shows **no relevance to any of the listed fields**. Minor issues like a missing phone number or a weak skill set are not grounds for rejection.\n- \"justification\": Short explanation why the candidate is accepted or rejected. The justification should focus on their overall relevance to a field and location.",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a flexible and helpful HR recruitment assistant for a company. Your primary goal is to identify a candidate's potential and suitability for a job based on their overall profile, not just a perfect skills match.\n\nYou are hiring for the following positions:\n\n1. AI Engineer – AI/ML-related skills or projects.\n2. Digital Marketing – SEO, ads, social media, content marketing.\n3. Web Developer – HTML, CSS, JS, frameworks.\n4. App Developer – Android, iOS, Flutter, React Native.\n5. Graphics Designer – Photoshop, Illustrator, Figma.\n6. Content Writer – blogging, SEO writing, copywriting.\n7. Sales Agent (Upwork) – lead generation, Upwork client handling.\n\nBasic eligibility for all positions:\n- Candidate must be from Karachi.\n\nYour task is to:\n- Analyze the candidate's skills, experience, education, and interests from their CV.\n- Grant leniency and accept candidates who are even **generally related to a field**, even if they lack direct, in-depth skills. For example, a student studying Computer Science with no AI projects is still \"related to\" the AI Engineer field.\n- Make a judgment call on acceptance or rejection based on their overall fit and relevance, not minor details.\n- Output strictly in JSON format as per the required fields."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        -464,
+        128
+      ],
+      "id": "5bc852dd-7fef-423d-b259-f681170fe4b9",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -496,
+        384
+      ],
+      "id": "ee13f9c1-535d-459e-bcc0-304459277c55",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "MlEVcCI6gEBuAjx2",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Append row in sheet').item.json.Email }}",
+        "subject": "=Application Update – Pulsecore Technologies",
+        "message": "=Dear {{ $('Append row in sheet').item.json.Name }} ,<br><br>\n\nThank you for applying for the position at our company and for showing interest in joining our team.<br><br>\n\nAfter reviewing your application, we regret to inform you that we are unable to move forward with your hiring at this time.<br>\nPlease know that this decision was made after careful consideration of all applicants.<br><br>\n\nWe truly appreciate the time and effort you put into your application and wish you the very best in your future career.<br><br>\n\nYours sincerely,<br>\nPulsecore Technologies<br>\nHR Department\n",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1152,
+        240
+      ],
+      "id": "1d6a8c46-0ec6-4327-ac3f-9b57eee38ccc",
+      "name": "Send a message",
+      "webhookId": "044908b9-3d03-4c30-ba0e-872affd41e9c",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "hNHHDanq5RgnpxgN",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.Email }}",
+        "subject": "Selection Confirmation – Pulsecore Technologies",
+        "message": "=Dear {{ $json.Name }},<br><br>\n\nWe are pleased to inform you that you have been selected for the position of {{ $json.Job }} <b></b> at Pulsecore Technologies.<br><br>\n\nPlease select a suitable time for the next steps using the link below:<br>\nhttps://calendly.com/murrehman290/30min Click here to choose your time slot</a><br><br>\n\nYours sincerely,<br>\nPulsecore Technologies<br>\nHR Department\n",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1136,
+        -16
+      ],
+      "id": "5fa7b8c1-48c9-44cd-950a-dfa57611420d",
+      "name": "Send a message1",
+      "webhookId": "4034d2f2-7526-4ee4-82ea-63f57d2b474a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "hNHHDanq5RgnpxgN",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Code').item.json.status }}",
+                    "rightValue": "Accepted",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "ec70b039-240c-4b59-ad51-b8384f9227f2"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "80218e52-da8d-4186-b227-8992bab534cc",
+                    "leftValue": "={{ $('Code').item.json.status }}",
+                    "rightValue": "Rejected",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "ignoreCase": true,
+          "allMatchingOutputs": false
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        624,
+        128
+      ],
+      "id": "1ea86e9a-c058-40fd-bf7b-ac231c222bc7",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d88d0d7a-ab9e-418f-a365-6fc41448f47e",
+              "name": "senders mail",
+              "value": "=EMAIL: {{ $json.from.value[0].address }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1632,
+        144
+      ],
+      "id": "b05bf662-5a15-4cec-a87c-0c3136ed62af",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1FaGUkXHPYlIYHBlptUjS46tFeSCci8PxpUEvrJEx9Lk",
+          "mode": "list",
+          "cachedResultName": "HR",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FaGUkXHPYlIYHBlptUjS46tFeSCci8PxpUEvrJEx9Lk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FaGUkXHPYlIYHBlptUjS46tFeSCci8PxpUEvrJEx9Lk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email": "={{ $('Edit Fields').item.json.from.value[0].address }}",
+            "Resume": "={{ $('Download file').item.json.webViewLink }}",
+            "Job": "={{ $json.job }}",
+            "Name": "={{ $json.name }}",
+            "Phone": "={{ $json.phone }}",
+            "Status": "={{ $json.status }}",
+            "Justification": "={{ $json.justification }}",
+            "Eligible": "={{ $json.eligible }}",
+            "Semester": "={{ $json.semester }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Job",
+              "displayName": "Job",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Justification",
+              "displayName": "Justification",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Eligible",
+              "displayName": "Eligible",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Semester",
+              "displayName": "Semester",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Resume",
+              "displayName": "Resume",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        352,
+        128
+      ],
+      "id": "d123e3cc-00c0-4b84-ab5f-aa7628b058ed",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "GVs5CKmt9bq5LIXB",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "markAsRead",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}"
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -1664,
+        432
+      ],
+      "id": "397dbbc3-7fe1-467e-b262-baf63ff82f74",
+      "name": "Mark a message as read",
+      "webhookId": "92b361fa-ff74-4584-9bec-c96d20a1ad5f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "hNHHDanq5RgnpxgN",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        32
+      ],
+      "id": "a4758aed-b1ea-45d8-af79-cdf990632518",
+      "name": "Wait",
+      "webhookId": "444f53fe-5668-44a6-9cab-5bf4a107a9d7"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        864,
+        208
+      ],
+      "id": "2287081d-a3cc-4048-be89-48d7e77cd67f",
+      "name": "Wait1",
+      "webhookId": "aca66899-34d4-4ed5-b0f5-cafbb36de9e3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the raw output from the previous node (e.g., your LLM Chain)\nconst rawOutput = $input.item.json.text;\n\n// Use a regular expression to find and extract the JSON object.\n// This handles cases where the model wraps the JSON in markdown code blocks (```json...```) or adds extra text.\nconst jsonMatch = rawOutput.match(/\\{[\\s\\S]*\\}/);\n\nlet parsedJson = null;\n\nif (jsonMatch && jsonMatch.length > 0) {\n  const jsonString = jsonMatch[0];\n  try {\n    // Attempt to parse the cleaned JSON string.\n    parsedJson = JSON.parse(jsonString);\n  } catch (e) {\n    // If parsing fails due to an error, log it or handle it.\n    console.error('Failed to parse JSON:', e.message);\n  }\n}\n\n// Add a fallback or validation logic for a common model mistake.\n// For instance, if the job name is \"Frontend Developer\", correct it to \"Web Developer\".\nif (parsedJson && parsedJson.job === \"Frontend Developer\") {\n  parsedJson.job = \"Web Developer\";\n}\n\n// Return the parsed JSON object. If parsing failed, you can return a placeholder\n// or error object to prevent the workflow from breaking.\nif (parsedJson) {\n  return [{ json: parsedJson }];\n} else {\n  // Example of a fallback: return a \"Rejected\" status with a clear justification.\n  return [{\n    json: {\n      status: \"Rejected\",\n      justification: \"Failed to parse AI output. The response was not in a valid JSON format.\"\n    }\n  }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        64,
+        128
+      ],
+      "id": "f2aa39cd-7d34-42ca-9361-1b3b082f957f",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $node[\"Download file\"].json[\"mimeType\"] }}",
+                    "rightValue": "application/pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "d502b932-8570-4c90-929f-4d4479b30556"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "ed07dbdf-b3ca-4f49-9dea-e3ab22c56949",
+                    "leftValue": "={{ $node[\"Download file\"].json[\"mimeType\"] }}",
+                    "rightValue": "application/pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEquals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -1056,
+        144
+      ],
+      "id": "4392976d-dcc0-41f5-be71-b2dc7e4f10bc",
+      "name": "Switch1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Mark a message as read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark a message as read": {
+      "main": [
+        []
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark a message as read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e6ec944e-4752-4b0c-bd28-1f84327334e6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "236b7ddf663e4de238beab13efa9360bd970763a259ea65c899fa85d9ea70b8d"
+  },
+  "id": "tZrZLYdCRXUEReq2",
+  "tags": []
+}
